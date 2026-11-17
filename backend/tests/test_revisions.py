@@ -4,7 +4,9 @@ from __future__ import annotations
 
 def _fresh_run(client, auth):
     rulebooks = client.get("/api/rulebooks", headers=auth).json()
-    active = next(r for r in rulebooks if r["status"] == "active")
+    active = next(
+        r for r in rulebooks if r["status"] == "active" and r["season_code"] == "2026-SPRING"
+    )
     models = client.get("/api/models", headers=auth).json()
     response = client.post(
         "/api/runs",

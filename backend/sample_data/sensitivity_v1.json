@@ -1,0 +1,26 @@
+{
+  "dataset": "sensitivity",
+  "version": 1,
+  "source_file": "sample_data/sensitivity_v1.json",
+  "notes": "样本文件：物种敏感级别（合成）。级别提高会收紧所有下游发布范围。",
+  "species": [
+    {
+      "species_code": "LOPHOPHORUS",
+      "name": "绿尾虹雉",
+      "level": "high",
+      "notes": "繁殖期对人为接近敏感；公开材料不得暗示巢区位置"
+    },
+    {
+      "species_code": "BUDORCAS",
+      "name": "羚牛",
+      "level": "medium",
+      "notes": "集群活动，公开分布需保持可比较的粗粒度"
+    },
+    {
+      "species_code": "AILUROPODA",
+      "name": "大熊猫",
+      "level": "low",
+      "notes": "样本仅用于对比不同敏感级别的发布范围"
+    }
+  ]
+}

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import API_PREFIX
 from .db import init_db
-from .routers import auth, catalog, probability, records, surveys
+from .routers import auth, catalog, probability, records, spatial, surveys
 
 
 @asynccontextmanager
@@ -34,8 +34,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for module in (auth, catalog, surveys, records, probability):
+for module in (auth, catalog, surveys, records, probability, spatial):
     app.include_router(module.router, prefix=API_PREFIX)
+    public = getattr(module, "public_router", None)
+    if public is not None:
+        app.include_router(public, prefix=API_PREFIX)
 
 
 @app.get("/api/health")

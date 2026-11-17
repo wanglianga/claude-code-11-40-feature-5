@@ -1,0 +1,436 @@
+{
+  "dataset": "habitat",
+  "version": 1,
+  "source_file": "sample_data/habitat_v1.json",
+  "origin": {
+    "lat": 31.06,
+    "lon": 103.63
+  },
+  "notes": "样本文件：公开生境边界（合成）。大坡面包含大片山地，但只有狭窄溪岸带对目标物种适生。不来自真实鸟巢、巡护点或外部地图平台。",
+  "features": [
+    {
+      "code": "QSL-MTN-01",
+      "name": "青松岭大坡面（非适生山地）",
+      "habitat_class": "alpine_meadow",
+      "elevation_min_m": 2000,
+      "elevation_max_m": 3000,
+      "connectivity_group": "QSL-MTN",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.5880536,
+              31.0192908
+            ],
+            [
+              103.6614598,
+              31.0192908
+            ],
+            [
+              103.6614598,
+              31.0871395
+            ],
+            [
+              103.5880536,
+              31.0871395
+            ],
+            [
+              103.5880536,
+              31.0192908
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "code": "QSL-TINY-01",
+      "name": "青松岭河湾小片适生带",
+      "habitat_class": "riparian",
+      "elevation_min_m": 1730,
+      "elevation_max_m": 1850,
+      "connectivity_group": "QSL-TINY",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.6551678,
+              31.0328605
+            ],
+            [
+              103.6559019,
+              31.0328605
+            ],
+            [
+              103.6559019,
+              31.0334938
+            ],
+            [
+              103.6551678,
+              31.0334938
+            ],
+            [
+              103.6551678,
+              31.0328605
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "code": "QSL-MIX-A",
+      "name": "青松岭西沟混交林",
+      "habitat_class": "mixed_forest",
+      "elevation_min_m": 1650,
+      "elevation_max_m": 2100,
+      "connectivity_group": "QSL-MIX-A",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.5985402,
+              31.0364791
+            ],
+            [
+              103.6090268,
+              31.0364791
+            ],
+            [
+              103.6090268,
+              31.0455256
+            ],
+            [
+              103.5985402,
+              31.0455256
+            ],
+            [
+              103.5985402,
+              31.0364791
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "code": "QSL-MIX-B",
+      "name": "青松岭东南混交林",
+      "habitat_class": "mixed_forest",
+      "elevation_min_m": 1650,
+      "elevation_max_m": 2000,
+      "connectivity_group": "QSL-MIX-B",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.6425839,
+              31.0274326
+            ],
+            [
+              103.6551678,
+              31.0274326
+            ],
+            [
+              103.6551678,
+              31.0487823
+            ],
+            [
+              103.6425839,
+              31.0487823
+            ],
+            [
+              103.6425839,
+              31.0274326
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "code": "QSL-MIX-C",
+      "name": "青松岭北梁混交林",
+      "habitat_class": "mixed_forest",
+      "elevation_min_m": 1750,
+      "elevation_max_m": 2100,
+      "connectivity_group": "QSL-MIX-C",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.6216107,
+              31.0563814
+            ],
+            [
+              103.6457299,
+              31.0563814
+            ],
+            [
+              103.6457299,
+              31.0708558
+            ],
+            [
+              103.6216107,
+              31.0708558
+            ],
+            [
+              103.6216107,
+              31.0563814
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "code": "QSL-ISO-01",
+      "name": "青松岭孤立林斑",
+      "habitat_class": "mixed_forest",
+      "elevation_min_m": 1750,
+      "elevation_max_m": 2000,
+      "connectivity_group": "QSL-ISO",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.6635571,
+              31.0464303
+            ],
+            [
+              103.6761411,
+              31.0464303
+            ],
+            [
+              103.6761411,
+              31.0572861
+            ],
+            [
+              103.6635571,
+              31.0572861
+            ],
+            [
+              103.6635571,
+              31.0464303
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "code": "YX-MIX-01",
+      "name": "云溪沟下坝混交林",
+      "habitat_class": "mixed_forest",
+      "elevation_min_m": 1620,
+      "elevation_max_m": 1790,
+      "connectivity_group": "YX-MIX",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.518842,
+              30.9677257
+            ],
+            [
+              103.5293286,
+              30.9677257
+            ],
+            [
+              103.5293286,
+              30.9767722
+            ],
+            [
+              103.518842,
+              30.9767722
+            ],
+            [
+              103.518842,
+              30.9677257
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "code": "YX-RIP-01",
+      "name": "云溪沟溪岸适生带",
+      "habitat_class": "riparian",
+      "elevation_min_m": 1620,
+      "elevation_max_m": 1760,
+      "connectivity_group": "YX-RIP",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.5661293,
+              30.9962344
+            ],
+            [
+              103.5671297,
+              30.9949615
+            ],
+            [
+              103.5343066,
+              30.9757648
+            ],
+            [
+              103.5333062,
+              30.9770378
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "code": "BHP-CON-01",
+      "name": "北坡高寒针叶林",
+      "habitat_class": "conifer",
+      "elevation_min_m": 2550,
+      "elevation_max_m": 2820,
+      "connectivity_group": "BHP-CON",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.6939683,
+              31.1151836
+            ],
+            [
+              103.7065522,
+              31.1151836
+            ],
+            [
+              103.7065522,
+              31.1242301
+            ],
+            [
+              103.6939683,
+              31.1242301
+            ],
+            [
+              103.6939683,
+              31.1151836
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "code": "BHP-CON-02",
+      "name": "北坡垭口针叶林",
+      "habitat_class": "conifer",
+      "elevation_min_m": 2500,
+      "elevation_max_m": 2760,
+      "connectivity_group": "BHP-CON-2",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.7128442,
+              31.1305627
+            ],
+            [
+              103.7233308,
+              31.1305627
+            ],
+            [
+              103.7233308,
+              31.1377999
+            ],
+            [
+              103.7128442,
+              31.1377999
+            ],
+            [
+              103.7128442,
+              31.1305627
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "code": "QSL-RIP-02",
+      "name": "青松岭东侧溪岸残片",
+      "habitat_class": "riparian",
+      "elevation_min_m": 1720,
+      "elevation_max_m": 1880,
+      "connectivity_group": "QSL-RIP-02",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.6417898,
+              31.0583072
+            ],
+            [
+              103.6423294,
+              31.0575314
+            ],
+            [
+              103.6397077,
+              31.0561745
+            ],
+            [
+              103.6391682,
+              31.0569502
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "code": "QSL-RIP-01",
+      "name": "青松岭溪岸适生带",
+      "habitat_class": "riparian",
+      "elevation_min_m": 1700,
+      "elevation_max_m": 1980,
+      "connectivity_group": "QSL-RIP",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              103.6318272,
+              31.0505464
+            ],
+            [
+              103.6367639,
+              31.0556569
+            ],
+            [
+              103.6367639,
+              31.0622616
+            ],
+            [
+              103.6379174,
+              31.0622616
+            ],
+            [
+              103.6379174,
+              31.0552966
+            ],
+            [
+              103.6323675,
+              31.0495513
+            ],
+            [
+              103.6079781,
+              31.0495513
+            ],
+            [
+              103.6079781,
+              31.0505464
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

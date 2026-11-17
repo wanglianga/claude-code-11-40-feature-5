@@ -361,3 +361,138 @@ export interface ArchiveRecord {
   determinations?: Determination[]
   used_by_units?: number[]
 }
+
+export interface SpatialRegion {
+  id: number
+  region_code: string
+  extent_key: string
+  component_key: string
+  family: string
+  status: 'published' | 'withheld'
+  geometry: { type: string; coordinates: any }
+  display_geometry: { type: string; coordinates: any }
+  display_cell_m: number
+  area_m2: number
+  display_area_m2: number
+  candidate_habitat_m2: number
+  width_m: number
+  base_cell_count: number
+  candidate_cells: string[]
+  base_cells: Array<{ cell_code: string; candidate_habitat_m2: number; observation_count: number; present_count: number }>
+  effort_known: boolean
+  effort_units: number
+  merged_effort_windows: number
+  reasons: Array<{ code: string; detail: string }>
+  sensitivity_level: string
+  threshold_snapshot: Record<string, any>
+  observation_count: number
+  present_count: number
+  duplicate_materials: number
+  effective_hours: number
+  route_length_m: number
+  effort_unknown_units: number
+  occurrence_rate: number | null
+  effort_blocks: Array<Record<string, any>>
+}
+
+export interface SpatialCheck {
+  check_code: string
+  status: 'pass' | 'fail'
+  detail: string
+  data: Record<string, any>
+}
+
+export interface SpatialPublication {
+  id: number
+  code: string
+  species_code: string
+  scope_code: string
+  season_code: string
+  status: string
+  survey_run_id: number | null
+  sensitivity_level: string
+  sensitivity_version: number
+  habitat_version: number
+  suitability_version: number
+  scope_version: number
+  region_count: number
+  published_region_count?: number
+  withheld_region_count?: number
+  checks_passed: boolean
+  stop_reason: string
+  stale_reason: string
+  note: string
+  created_by: string
+  created_at: string | null
+  published_at: string | null
+}
+
+export interface SpatialPublicationDetail {
+  publication: SpatialPublication
+  regions: SpatialRegion[]
+  checks: SpatialCheck[]
+}
+
+export interface SpatialMapPayload {
+  publication: {
+    code: string
+    species_code: string
+    species_name: string
+    season_code: string
+    scope_code: string
+    scope_name: string
+    sensitivity_level: string
+    sensitivity_version: number
+    habitat_version: number
+    suitability_version: number
+    published_region_count: number
+    withheld_region_count: number
+    unattributed_observations: number
+    status: string
+  }
+  map: {
+    type: 'FeatureCollection'
+    features: Array<{ type: 'Feature'; geometry: { type: string; coordinates: any }; properties: Record<string, any> }>
+    disclosure: string
+  }
+  stats: {
+    regions: Array<Record<string, any>>
+    withheld: Array<{ region_code: string; reason_codes: string[]; candidate_habitat_ha: number }>
+  }
+}
+
+export interface SpatialComparison {
+  first: { code: string; season_code: string; sensitivity_level: string; display_cell_m: number | null }
+  second: { code: string; season_code: string; sensitivity_level: string; display_cell_m: number | null }
+  shared_extent_count: number
+  comparable_rows: Array<{
+    extent_key: string
+    region_code_first: string
+    region_code_second: string
+    candidate_habitat_ha: [number, number]
+    observation_count: [number, number]
+    present_count: [number, number]
+    effective_hours: [number, number]
+    route_length_km: [number, number]
+    occurrence_rate: [number | null, number | null]
+    delta_observations: number
+  }>
+  only_first: Array<Record<string, any>>
+  only_second: Array<Record<string, any>>
+  rule: string
+}
+
+export interface SpatialMaterial {
+  material_code: string
+  publication_code: string | null
+  kind: 'map' | 'download'
+  scope_code: string
+  species_code: string
+  status: string
+  sensitivity_level: string
+  content_hash: string
+  regions: Array<{ region_code: string; extent_key: string; display_cell_m: number }>
+  created_at: string | null
+  withdrawn_at: string | null
+  note: string
+}

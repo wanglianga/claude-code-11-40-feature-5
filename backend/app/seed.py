@@ -39,6 +39,9 @@ from .services import (
     ingest_record,
     revise_determination,
 )
+from .spatial import attribute_statistics, build_partition, create_publication
+from .spatial_datasets import active_revision, seed_default_datasets
+from .spatial_delivery import publish
 
 SEASON = ("2026-04-01", "2026-04-30")
 SURVEY_DATES = ["2026-04-10", "2026-04-11", "2026-04-12"]
@@ -47,8 +50,9 @@ LON_M = 111_320.0
 
 
 def latlon(lat0: float, lon0: float, dx: float, dy: float) -> tuple[float, float]:
-    lon = lon0 + math.degrees(dx / (LON_M * math.cos(math.radians(lat0))))
-    lat = lat0 + math.degrees(dy / LAT_M)
+    """Offset a point by ``dx``/``dy`` metres (local frame, degrees per metre)."""
+    lon = lon0 + dx / (LON_M * math.cos(math.radians(lat0)))
+    lat = lat0 + dy / LAT_M
     return lat, lon
 
 
@@ -89,15 +93,16 @@ def utc_iso(day: str, hour: int, minute: int = 0, plus_hours: float = 0.0) -> st
 
 STATIONS = [
     # code, name, zone, lat, lon, half-size m, buffer m, elev range, scenario
-    ("QSL-01", "青松岭主监测站", "QS", 31.050000, 103.620000, 120, 30, (1850, 2050), "clean"),
-    ("QSL-02", "青松岭北梁相机站", "QS", 31.066000, 103.641000, 120, 30, (1900, 2100), "frame_gap"),
-    ("QSL-03", "青松岭西沟站", "QS", 31.041000, 103.602000, 120, 30, (1800, 1990), "conflict"),
-    ("QSL-04", "青松岭东南站", "QS", 31.032000, 103.650000, 120, 30, (1750, 1930), "thin_reading"),
-    ("YXG-01", "云溪沟西站", "YX", 30.980000, 103.540000, 120, 30, (1700, 1880), "edge"),
-    ("YXG-02", "云溪沟东站", "YX", 30.992000, 103.560500, 120, 30, (1720, 1900), "late_revision"),
-    ("YXG-03", "云溪沟下坝站", "YX", 30.970500, 103.522000, 120, 40, (1620, 1790), "partial_route"),
-    ("BHP-01", "北坡高寒相机站", "BH", 31.120000, 103.700000, 110, 35, (2600, 2820), "clock_drift"),
-    ("BHP-02", "北坡垭口迁移站", "BH", 31.135000, 103.718000, 100, 30, (2500, 2760), "migration"),
+    ("QSL-01", "青松岭主监测站", "QS", 31.050049, 103.625805, 120, 30, (1850, 2050), "clean"),
+    ("QSL-02", "青松岭北梁相机站", "QS", 31.050049, 103.613221, 120, 30, (1900, 2100), "frame_gap"),
+    ("QSL-03", "青松岭西沟站", "QS", 31.060000, 103.630000, 120, 30, (1800, 1990), "conflict"),
+    ("QSL-04", "青松岭东南站", "QS", 31.032861, 103.648876, 120, 30, (1750, 1930), "thin_reading"),
+    ("QSL-05", "青松岭河岸辅站", "QS", 31.050049, 103.631049, 90, 30, (1710, 1900), "partial_stop"),
+    ("YXG-01", "云溪沟西站", "YX", 30.978310, 103.537089, 120, 30, (1700, 1880), "edge"),
+    ("YXG-02", "云溪沟东站", "YX", 30.986000, 103.550218, 120, 30, (1720, 1900), "late_revision"),
+    ("YXG-03", "云溪沟下坝站", "YX", 30.993689, 103.563347, 120, 40, (1620, 1790), "partial_route"),
+    ("BHP-01", "北坡高寒相机站", "BH", 31.119707, 103.700260, 110, 35, (2600, 2820), "clock_drift"),
+    ("BHP-02", "北坡垭口迁移站", "BH", 31.134181, 103.718087, 100, 30, (2500, 2760), "migration"),
 ]
 
 ZONES = [
@@ -426,8 +431,10 @@ def emit_device_day(db, station, scenario, day: str, station_version_lat=None, s
         frame_plan = [(6, 1), (8, 2), (10, 3), (12, 4), (14, 5), (16, 6)]
 
     frames = []
+    # Frames sit inside the narrow riparian corridor (±55 m); the offset pattern is
+    # wide enough to exercise thresholds but not to fall off the published habitat.
     for idx, (hour, seq) in enumerate(frame_plan):
-        lat, lon = _frame_latlon(station, station.code, -60 + idx * 24, 8)
+        lat, lon = _frame_latlon(station, station.code, -40 + idx * 16, 6)
         payload = {
             "frame_seq": seq,
             "image_ref": f"s3://reserve-cam/{station.code}/{day}/IMG_{seq:04d}.jpg",
@@ -469,6 +476,23 @@ def emit_device_day(db, station, scenario, day: str, station_version_lat=None, s
                 "end": utc_iso(day, 12, 15),
                 "reason": "计划维护：更换电池与存储卡",
                 "operator": "巡护一组",
+                "camera_id": device,
+            },
+            device=device,
+        )
+    # 部分调查停机：只有一天出现计划外的长时间停机，可用时段降低但仍有记录。
+    if scenario == "partial_stop" and day == "2026-04-11":
+        _record(
+            db,
+            station=station,
+            record_type="downtime_log",
+            external_id=f"DT-{station.code}-{day.replace('-', '')}-PARTIAL",
+            event_time=utc_iso(day, 18),
+            payload={
+                "start": utc_iso(day, 18),
+                "end": utc_iso(day, 23, 30),
+                "reason": "计划外停机：供电故障，设备自行恢复",
+                "operator": "巡护二组",
                 "camera_id": device,
             },
             device=device,
@@ -733,6 +757,284 @@ def seed_references_and_revision(db, run: SurveyRun) -> None:
     )
 
 
+def seed_autumn_rulebook(db) -> RulebookVersion:
+    master = db.execute(select(Rulebook).where(Rulebook.code == "RB-SPRING-2026")).scalar_one()
+    existing = db.execute(
+        select(RulebookVersion)
+        .where(RulebookVersion.rulebook_id == master.id)
+        .where(RulebookVersion.season_code == "2026-AUTUMN")
+    ).scalar_one_or_none()
+    if existing is not None:
+        return existing
+    base = db.execute(
+        select(RulebookVersion)
+        .where(RulebookVersion.rulebook_id == master.id)
+        .where(RulebookVersion.version_number == 1)
+    ).scalar_one()
+    autumn = RulebookVersion(
+        rulebook_id=master.id,
+        version_number=4,
+        label="2026 秋季正式版",
+        season_code="2026-AUTUMN",
+        season_start=date(2026, 9, 1),
+        season_end=date(2026, 9, 30),
+        status="active",
+        target_species=base.target_species,
+        requirements={**base.requirements, "schedule": {"survey_dates": ["2026-09-10", "2026-09-11", "2026-09-12"]}},
+        route_segments=base.route_segments,
+        elevation_bands=base.elevation_bands,
+        notes="秋季调查沿用春季门槛，用于与春季结果做共同范围比较。",
+    )
+    db.add(autumn)
+    db.flush()
+    return autumn
+
+
+AUTUMN_DAYS = ("2026-09-10", "2026-09-11", "2026-09-12")
+
+
+def _autumn_record(db, station, record_type, external_id, event_time, payload, device,
+                   received_time=None, lat=None, lon=None, precision=None):
+    _record(
+        db,
+        station=station,
+        record_type=record_type,
+        external_id=external_id,
+        event_time=event_time,
+        payload=payload,
+        device=device,
+        received_time=received_time,
+        lat=lat,
+        lon=lon,
+        precision=precision,
+        actor="seed",
+    )
+
+
+def seed_autumn_archive(db, station_map, species: str) -> None:
+    """秋季数据：观察、转载素材、跨分区定位误差与部分调查停机。
+
+    只处理青松岭主站与河岸辅站（目标物种绿尾虹雉），方便与春季结果按共同范围比较。
+    """
+    for code in ("QSL-01", "QSL-05"):
+        station = station_map[code]
+        device = f"CAM-{code}"
+        for day in AUTUMN_DAYS:
+            for hour in range(0, 24, 2):
+                _autumn_record(
+                    db,
+                    station,
+                    "device_heartbeat",
+                    f"AUT-HB-{code}-{day.replace('-', '')}-{hour:02d}",
+                    utc_iso(day, hour),
+                    {
+                        "battery_pct": 74 - (hour % 5),
+                        "temperature_c": 9.5,
+                        "firmware": "3.2.1",
+                        "heartbeat_seq": hour // 2 + 1,
+                        "season": "autumn",
+                    },
+                    device,
+                )
+            for idx, (hour, seq) in enumerate(
+                [(6, 1), (8, 2), (10, 3), (12, 4), (14, 5), (16, 6)]
+            ):
+                lat, lon = _frame_latlon(station, code, -40 + idx * 16, 6)
+                _autumn_record(
+                    db,
+                    station,
+                    "camera_event",
+                    f"AUT-IMG-{code}-{day.replace('-', '')}-{seq:04d}",
+                    utc_iso(day, hour),
+                    {
+                        "frame_seq": seq,
+                        "image_ref": f"s3://reserve-cam/{code}/{day}/AUT_{seq:04d}.jpg",
+                        "camera_id": device,
+                        "material_key": f"AUT-{code}-{day}-{seq:04d}",
+                        "season": "autumn",
+                    },
+                    device,
+                    received_time=utc_iso(day, hour, 3),
+                    lat=lat,
+                    lon=lon,
+                    precision=8.0,
+                )
+            # 部分调查停机：河岸辅站秋季只有一天有较长的计划外停机。
+            if code == "QSL-05" and day == AUTUMN_DAYS[1]:
+                _autumn_record(
+                    db,
+                    station,
+                    "downtime_log",
+                    f"AUT-DT-{code}-{day.replace('-', '')}",
+                    utc_iso(day, 17),
+                    {
+                        "start": utc_iso(day, 17),
+                        "end": utc_iso(day, 22),
+                        "reason": "秋季计划外停机：太阳能板遮挡",
+                        "camera_id": device,
+                    },
+                    device,
+                )
+            _autumn_record(
+                db,
+                station,
+                "patrol_track",
+                f"AUT-TRK-{code}-{day.replace('-', '')}",
+                utc_iso(day, 7),
+                {
+                    "geometry": line_geojson(station.latitude, station.longitude, -70, 0, 70, 0),
+                    "observer": "巡护一组",
+                    "route_code": f"SEG-{code}-A",
+                    "track_key": f"AUT-TRK-{code}-{day}",
+                },
+                f"GPS-{code}",
+                received_time=utc_iso(day, 18),
+                precision=9.0,
+            )
+
+    # 跨分区定位误差：位置落在溪岸带与混交林发布分区交界，误差半径跨过边界。
+    station = station_map["QSL-05"]
+    # 位于溪岸带（区 2）与东段河岸带（区 3）之间的窄缝上，误差半径同时触及两块分区。
+    lat, lon = _frame_latlon(station, "QSL-05", -300, 0)
+    _autumn_record(
+        db,
+        station,
+        "camera_event",
+        "AUT-IMG-BOUNDARY-0001",
+        utc_iso(AUTUMN_DAYS[0], 9),
+        {
+            "frame_seq": 7,
+            "image_ref": "s3://reserve-cam/QSL-05/cross.png",
+            "camera_id": "CAM-QSL-05",
+            "material_key": "AUT-CROSS-0001",
+            "season": "autumn",
+            "location_note": "定位误差覆盖两个发布分区",
+        },
+        "CAM-QSL-05",
+        received_time=utc_iso(AUTUMN_DAYS[0], 12),
+        lat=lat,
+        lon=lon,
+        precision=350.0,
+    )
+    # 转载素材：同一图片从合作机构渠道再次提交，应排重只计一次。
+    original = db.execute(
+        select(ArchiveRecord).where(
+            ArchiveRecord.external_id
+            == f"AUT-IMG-QSL-01-{AUTUMN_DAYS[0].replace('-', '')}-0002"
+        )
+    ).scalar_one()
+    _autumn_record(
+        db,
+        station_map["QSL-01"],
+        "camera_event",
+        "AUT-IMG-QSL-01-0002-REPOST",
+        utc_iso(AUTUMN_DAYS[0], 8, 30),
+        {
+            "frame_seq": 2,
+            "image_ref": "partner-mirror://qsl/AUT_0002.jpg",
+            "camera_id": "CAM-QSL-01",
+            "material_key": f"AUT-QSL-01-{AUTUMN_DAYS[0]}-0002",
+            "repost_of": original.external_id,
+            "season": "autumn",
+        },
+        "partner-portal",
+        received_time=utc_iso(AUTUMN_DAYS[0], 20),
+        lat=original.latitude,
+        lon=original.longitude,
+        precision=8.0,
+    )
+
+
+def seed_autumn_determinations(db, species: str) -> None:
+    from .services import add_determination
+
+    present_keys = {
+        "AUT-IMG-QSL-01-20260910-0003",
+        "AUT-IMG-QSL-05-20260911-0004",
+    }
+    for record in db.execute(
+        select(ArchiveRecord)
+        .where(ArchiveRecord.external_id.like("AUT-IMG-%"))
+        .where(ArchiveRecord.external_id != "AUT-IMG-BOUNDARY-0001")
+        .order_by(ArchiveRecord.id)
+    ).scalars():
+        verdict = "present" if record.external_id in present_keys else "absent"
+        add_determination(
+            db,
+            material_record_id=record.id,
+            source="analyst",
+            species_code=species,
+            verdict=verdict,
+            confidence=0.88 if verdict == "present" else 0.81,
+            analyst="周冕",
+            notes="秋季逐帧判读",
+            actor="seed",
+        )
+    boundary = db.execute(
+        select(ArchiveRecord).where(ArchiveRecord.external_id == "AUT-IMG-BOUNDARY-0001")
+    ).scalar_one()
+    add_determination(
+        db,
+        material_record_id=boundary.id,
+        source="analyst",
+        species_code=species,
+        verdict="absent",
+        confidence=0.84,
+        analyst="周冕",
+        notes="秋季跨界位置素材，定位误差覆盖两个发布分区",
+        actor="seed",
+    )
+
+
+def seed_autumn(db, station_map, model: ProbabilityModel):
+    """Build the autumn run and reproduce the demo publication cycle.
+
+    1. spring publication for 绿尾虹雉 under sensitivity v1;
+    2. autumn publication under v1;
+    3. raise sensitivity to critical and revise the habitat (v2);
+    4. rebuild affected partitions and re-check.
+    """
+    autumn_rulebook = seed_autumn_rulebook(db)
+    species = "LOPHOPHORUS"
+    seed_autumn_archive(db, station_map, species)
+    seed_autumn_determinations(db, species)
+    db.flush()
+    run = build_run(
+        db,
+        rulebook_version=autumn_rulebook,
+        model=model,
+        station_ids=None,
+        label="2026 秋季调查覆盖组装",
+        actor="yq.li",
+    )
+    db.flush()
+    return run
+
+
+def seed_spring_publication(db, spring_run: SurveyRun) -> None:
+    seed_publication(db, spring_run, season_label="春季")
+
+
+def seed_publication(db, run: SurveyRun, *, season_label: str) -> None:
+    """Create and publish a baseline delivery so the map has content on first boot.
+
+    The sensitivity escalation + habitat revision + re-check cycle is reproduced by
+    ``backend/scripts/spatial_demo.py`` (and covered by the automated tests), so a
+    normal boot stays fast.
+    """
+    publication = create_publication(
+        db,
+        species_code="LOPHOPHORUS",
+        scope_code="PUBLIC",
+        season_code=run.season_code,
+        run=run,
+        actor="yq.li",
+        note=f"{season_label}发布（敏感级别 high，生境 v1）",
+    )
+    if publication.checks_passed:
+        publish(db, publication, "yq.li", f"{season_label}公众分布地图与数据文件")
+
+
 def main() -> None:
     init_db()
     db = SessionLocal()
@@ -745,9 +1047,14 @@ def main() -> None:
         zone_map, station_map = seed_catalog(db)
         rulebook = seed_rulebook(db)
         model = seed_model(db)
+        seed_default_datasets(db)
         seed_archive(db, zone_map, station_map)
         run = seed_run(db, rulebook, model)
         seed_references_and_revision(db, run)
+        autumn_run = seed_autumn(db, station_map, model)
+        db.flush()
+        seed_spring_publication(db, run)
+        seed_publication(db, autumn_run, season_label="秋季")
         db.commit()
         print(f"seed: run {run.run_code} with {len(run.units)} survey units")
     except Exception:

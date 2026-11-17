@@ -1,0 +1,56 @@
+{
+  "dataset": "scopes",
+  "version": 1,
+  "source_file": "sample_data/scopes_v1.json",
+  "notes": "样本文件：接收范围配置。接收范围提高不等于自动获得精确巢点；精确位置只在内部核查入口可见。",
+  "scopes": [
+    {
+      "code": "PUBLIC",
+      "name": "公众",
+      "audience": "public",
+      "purpose": "公众分布概览",
+      "external": true,
+      "allowed_levels": ["low", "medium", "high", "critical"],
+      "thresholds": {
+        "min_cell_size_m": 500,
+        "min_candidate_habitat_m2": 150000,
+        "min_region_width_m": 800,
+        "allow_narrow_habitat": false,
+        "merge_adjacent": true
+      },
+      "notes": "公众地图与下载文件必须使用合并后的发布分区"
+    },
+    {
+      "code": "PARTNER",
+      "name": "合作研究机构",
+      "audience": "partner",
+      "purpose": "合作研究分布比较",
+      "external": true,
+      "allowed_levels": ["low", "medium", "high"],
+      "thresholds": {
+        "min_cell_size_m": 250,
+        "min_candidate_habitat_m2": 60000,
+        "min_region_width_m": 400,
+        "allow_narrow_habitat": true,
+        "merge_adjacent": true
+      },
+      "notes": "合作机构可获更细网格，但敏感级别为 critical 的物种结果不公开"
+    },
+    {
+      "code": "INTERNAL",
+      "name": "保护区内部",
+      "audience": "internal",
+      "purpose": "内部核查与原始记录核对",
+      "external": false,
+      "allowed_levels": ["low", "medium", "high", "critical"],
+      "thresholds": {
+        "min_cell_size_m": 0,
+        "min_candidate_habitat_m2": 0,
+        "min_region_width_m": 0,
+        "allow_narrow_habitat": true,
+        "merge_adjacent": false
+      },
+      "notes": "内部入口不是公开查询；仍用于逐项核对观察、努力量与排除记录"
+    }
+  ]
+}

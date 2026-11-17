@@ -72,8 +72,8 @@ def _to_local_factory(lat0: float, lon0: float):
 
     def _fn(coords):
         out = coords.copy()
-        out[:, 0] = [math.radians(x - lon0) * lon_scale for x in coords[:, 0]]
-        out[:, 1] = [math.radians(y - lat0) * _LAT_M for y in coords[:, 1]]
+        out[:, 0] = (coords[:, 0] - lon0) * lon_scale
+        out[:, 1] = (coords[:, 1] - lat0) * _LAT_M
         return out
 
     return _fn
@@ -84,8 +84,8 @@ def _from_local_factory(lat0: float, lon0: float):
 
     def _fn(coords):
         out = coords.copy()
-        out[:, 0] = [lon0 + math.degrees(x / lon_scale) for x in coords[:, 0]]
-        out[:, 1] = [lat0 + math.degrees(y / _LAT_M) for y in coords[:, 1]]
+        out[:, 0] = lon0 + coords[:, 0] / lon_scale
+        out[:, 1] = lat0 + coords[:, 1] / _LAT_M
         return out
 
     return _fn

@@ -368,3 +368,277 @@ class AuditEvent(Base):
     actor: Mapped[str] = mapped_column(String(64))
     detail: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+# --------------------------------------------------------------------------
+# Spatial publication: habitat, sensitivity, grids, partitions and delivery
+# --------------------------------------------------------------------------
+class DatasetRevision(Base):
+    __tablename__ = "dataset_revisions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dataset: Mapped[str] = mapped_column(String(32), index=True)  # habitat | suitability | sensitivity | scopes
+    version: Mapped[int] = mapped_column(Integer)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    source_file: Mapped[str] = mapped_column(String(256), default="")
+    notes: Mapped[str] = mapped_column(Text, default="")
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class HabitatPolygon(Base):
+    """Public habitat boundary. Never derived from a nest point or station position."""
+
+    __tablename__ = "habitat_polygons"
+    __table_args__ = (Index("ix_habitat_class_version", "habitat_class", "dataset_version"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    dataset_version: Mapped[int] = mapped_column(Integer, index=True)
+    code: Mapped[str] = mapped_column(String(64), index=True)
+    name: Mapped[str] = mapped_column(String(128))
+    habitat_class: Mapped[str] = mapped_column(String(32))
+    geometry: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    area_m2: Mapped[float] = mapped_column(Float)
+    elevation_min_m: Mapped[float] = mapped_column(Float)
+    elevation_max_m: Mapped[float] = mapped_column(Float)
+    connectivity_group: Mapped[str] = mapped_column(String(64), default="")
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class SpeciesSuitability(Base):
+    __tablename__ = "species_suitability"
+    __table_args__ = (
+        UniqueConstraint("species_code", "dataset_version", name="uq_suitability_species_version"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    species_code: Mapped[str] = mapped_column(String(64), index=True)
+    dataset_version: Mapped[int] = mapped_column(Integer)
+    habitat_classes: Mapped[list[str]] = mapped_column(JSONB)
+    elevation_min_m: Mapped[float] = mapped_column(Float)
+    elevation_max_m: Mapped[float] = mapped_column(Float)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class SpeciesSensitivity(Base):
+    __tablename__ = "species_sensitivity"
+    __table_args__ = (
+        UniqueConstraint("species_code", "dataset_version", name="uq_sensitivity_species_version"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    species_code: Mapped[str] = mapped_column(String(64), index=True)
+    species_name: Mapped[str] = mapped_column(String(128))
+    level: Mapped[str] = mapped_column(String(16))  # low | medium | high | critical
+    dataset_version: Mapped[int] = mapped_column(Integer)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class RecipientScope(Base):
+    __tablename__ = "recipient_scopes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(32), unique=True)
+    name: Mapped[str] = mapped_column(String(128))
+    audience: Mapped[str] = mapped_column(String(64))
+    purpose: Mapped[str] = mapped_column(String(128))
+    external: Mapped[bool] = mapped_column(Boolean, default=True)
+    allowed_levels: Mapped[list[str]] = mapped_column(JSONB)
+    thresholds: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    dataset_version: Mapped[int] = mapped_column(Integer, default=1)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class GridCell(Base):
+    """Fixed base grid. Cells are retained on every region for cross-season joins."""
+
+    __tablename__ = "grid_cells"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    ix: Mapped[int] = mapped_column(Integer)
+    iy: Mapped[int] = mapped_column(Integer)
+    cell_size_m: Mapped[float] = mapped_column(Float)
+    grid_version: Mapped[int] = mapped_column(Integer, default=1)
+    geometry: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    area_m2: Mapped[float] = mapped_column(Float)
+
+
+class PublicationRun(Base):
+    __tablename__ = "publication_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    scope_code: Mapped[str] = mapped_column(String(32), index=True)
+    species_code: Mapped[str] = mapped_column(String(64), index=True)
+    season_code: Mapped[str] = mapped_column(String(32), index=True)
+    survey_run_id: Mapped[int | None] = mapped_column(ForeignKey("survey_runs.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(24), default="checked")
+    # building | checked | published | stale | stopped | superseded
+    sensitivity_level: Mapped[str] = mapped_column(String(16))
+    sensitivity_version: Mapped[int] = mapped_column(Integer)
+    habitat_version: Mapped[int] = mapped_column(Integer)
+    suitability_version: Mapped[int] = mapped_column(Integer)
+    scope_version: Mapped[int] = mapped_column(Integer)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    thresholds: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    thresholds_from_disclosure: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    region_count: Mapped[int] = mapped_column(Integer, default=0)
+    published_region_count: Mapped[int] = mapped_column(Integer, default=0)
+    unattributed_observations: Mapped[int] = mapped_column(Integer, default=0)
+    checks_passed: Mapped[bool] = mapped_column(Boolean, default=False)
+    stop_reason: Mapped[str] = mapped_column(Text, default="")
+    created_by: Mapped[str] = mapped_column(String(64))
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    superseded_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("publication_runs.id"), nullable=True
+    )
+    stale_reason: Mapped[str] = mapped_column(Text, default="")
+
+
+class PartitionRegion(Base):
+    __tablename__ = "partition_regions"
+    __table_args__ = (
+        UniqueConstraint("publication_id", "region_code", name="uq_region_code"),
+        Index("ix_region_publication_status", "publication_id", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    publication_id: Mapped[int] = mapped_column(ForeignKey("publication_runs.id"), index=True)
+    region_code: Mapped[str] = mapped_column(String(32))
+    extent_key: Mapped[str] = mapped_column(String(32))
+    component_key: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(16))  # published | withheld
+    geometry: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    display_geometry: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    area_m2: Mapped[float] = mapped_column(Float)
+    candidate_habitat_m2: Mapped[float] = mapped_column(Float)
+    width_m: Mapped[float] = mapped_column(Float)
+    base_cell_count: Mapped[int] = mapped_column(Integer)
+    candidate_cells: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    display_cell_m: Mapped[float] = mapped_column(Float, default=100.0)
+    display_area_m2: Mapped[float] = mapped_column(Float, default=0.0)
+    effort_known: Mapped[bool] = mapped_column(Boolean, default=False)
+    reasons: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    sensitivity_level: Mapped[str] = mapped_column(String(16))
+    threshold_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    observation_count: Mapped[int] = mapped_column(Integer, default=0)
+    present_count: Mapped[int] = mapped_column(Integer, default=0)
+    duplicate_materials: Mapped[int] = mapped_column(Integer, default=0)
+    effective_hours: Mapped[float] = mapped_column(Float, default=0.0)
+    route_length_m: Mapped[float] = mapped_column(Float, default=0.0)
+    effort_unknown_units: Mapped[int] = mapped_column(Integer, default=0)
+    effort_units: Mapped[int] = mapped_column(Integer, default=0)
+    merged_effort_windows: Mapped[int] = mapped_column(Integer, default=0)
+    expanded_for_prior: Mapped[bool] = mapped_column(Boolean, default=False)
+    occurrence_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+
+class RegionCell(Base):
+    __tablename__ = "region_cells"
+    __table_args__ = (UniqueConstraint("region_id", "cell_id", name="uq_region_cell"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    region_id: Mapped[int] = mapped_column(ForeignKey("partition_regions.id"), index=True)
+    cell_id: Mapped[int] = mapped_column(ForeignKey("grid_cells.id"))
+    cell_code: Mapped[str] = mapped_column(String(32))
+    candidate_habitat_m2: Mapped[float] = mapped_column(Float, default=0.0)
+    observation_count: Mapped[int] = mapped_column(Integer, default=0)
+    present_count: Mapped[int] = mapped_column(Integer, default=0)
+    effective_hours: Mapped[float] = mapped_column(Float, default=0.0)
+    route_length_m: Mapped[float] = mapped_column(Float, default=0.0)
+
+
+class RegionObservation(Base):
+    __tablename__ = "region_observations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    publication_id: Mapped[int] = mapped_column(ForeignKey("publication_runs.id"), index=True)
+    region_id: Mapped[int | None] = mapped_column(
+        ForeignKey("partition_regions.id"), nullable=True, index=True
+    )
+    cell_id: Mapped[int | None] = mapped_column(ForeignKey("grid_cells.id"), nullable=True)
+    record_id: Mapped[int] = mapped_column(ForeignKey("archive_records.id"))
+    external_id: Mapped[str] = mapped_column(String(128))
+    material_key: Mapped[str] = mapped_column(String(128), default="")
+    source: Mapped[str] = mapped_column(String(64), default="")
+    species_code: Mapped[str] = mapped_column(String(64))
+    verdict: Mapped[str] = mapped_column(String(32))
+    confidence: Mapped[float] = mapped_column(Float)
+    disposition: Mapped[str] = mapped_column(String(24))  # included | duplicate | unattributed
+    reason: Mapped[str] = mapped_column(String(128), default="")
+
+
+class RegionEffort(Base):
+    """One merged valid-device block per region. Overlapping windows are counted once."""
+
+    __tablename__ = "region_effort"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    publication_id: Mapped[int] = mapped_column(ForeignKey("publication_runs.id"), index=True)
+    region_id: Mapped[int | None] = mapped_column(
+        ForeignKey("partition_regions.id"), nullable=True, index=True
+    )
+    unit_ids: Mapped[list[int]] = mapped_column(JSONB, default=list)
+    station_ids: Mapped[list[int]] = mapped_column(JSONB, default=list)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    window_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    hours: Mapped[float] = mapped_column(Float)
+    merged_intervals: Mapped[int] = mapped_column(Integer, default=1)
+    disposition: Mapped[str] = mapped_column(String(24))  # included | unknown | excluded
+    reason: Mapped[str] = mapped_column(String(128), default="")
+
+
+class RegionRoute(Base):
+    __tablename__ = "region_routes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    publication_id: Mapped[int] = mapped_column(ForeignKey("publication_runs.id"), index=True)
+    region_id: Mapped[int | None] = mapped_column(
+        ForeignKey("partition_regions.id"), nullable=True, index=True
+    )
+    cell_id: Mapped[int | None] = mapped_column(ForeignKey("grid_cells.id"), nullable=True)
+    record_id: Mapped[int] = mapped_column(ForeignKey("archive_records.id"))
+    length_m: Mapped[float] = mapped_column(Float, default=0.0)
+    disposition: Mapped[str] = mapped_column(String(24))  # included | duplicate | excluded
+    reason: Mapped[str] = mapped_column(String(128), default="")
+
+
+class PublicationCheck(Base):
+    __tablename__ = "publication_checks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    publication_id: Mapped[int] = mapped_column(ForeignKey("publication_runs.id"), index=True)
+    check_code: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16))  # pass | fail
+    detail: Mapped[str] = mapped_column(Text)
+    data: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class PublicMaterial(Base):
+    """Ledger of every map/file ever released. Withdrawal never erases the range."""
+
+    __tablename__ = "public_materials"
+    __table_args__ = (Index("ix_material_scope_species", "scope_code", "species_code"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    publication_id: Mapped[int] = mapped_column(ForeignKey("publication_runs.id"), index=True)
+    scope_code: Mapped[str] = mapped_column(String(32))
+    species_code: Mapped[str] = mapped_column(String(64))
+    kind: Mapped[str] = mapped_column(String(16))  # map | download
+    material_code: Mapped[str] = mapped_column(String(64), unique=True)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    sensitivity_level: Mapped[str] = mapped_column(String(16))
+    thresholds: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    regions: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(16), default="active")  # active | stale | superseded | withdrawn
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    csv_text: Mapped[str] = mapped_column(Text, default="")
+    superseded_by_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    note: Mapped[str] = mapped_column(Text, default="")

@@ -8,12 +8,13 @@ const route = useRoute()
 const router = useRouter()
 
 const isLogin = computed(() => route.name === 'login')
+const isStandalone = computed(() => route.name === 'login' || route.name === 'public-map')
 const user = authState.user
 
 watch(
   () => authState.version.value,
   () => {
-    if (!authState.isAuthenticated.value && !isLogin.value) {
+    if (!authState.isAuthenticated.value && !isStandalone.value) {
       router.replace({ name: 'login', query: { next: route.fullPath } })
     }
   },
@@ -26,7 +27,12 @@ function onLogout() {
 </script>
 
 <template>
-  <div v-if="isLogin">
+  <div v-if="isStandalone">
+    <div class="public-bar">
+      <span class="brand-title" style="color: var(--ink)">年度物种调查 · 公开分布数据</span>
+      <router-link v-if="route.name === 'public-map'" class="btn sm" to="/login">内部核查登录</router-link>
+      <router-link v-else class="btn sm" to="/public-map">返回公开视图</router-link>
+    </div>
     <router-view />
   </div>
   <div v-else class="shell">
@@ -54,6 +60,17 @@ function onLogout() {
           <span class="nav-dot"></span>单元回溯链
         </router-link>
 
+        <div class="nav-label">空间发布</div>
+        <router-link to="/spatial" :class="{ active: route.name === 'spatial' }">
+          <span class="nav-dot"></span>空间泛化工作台
+        </router-link>
+        <router-link to="/spatial/compare" :class="{ active: route.name === 'spatial-compare' }">
+          <span class="nav-dot"></span>共同范围比较
+        </router-link>
+        <router-link to="/public-map" :class="{ active: route.name === 'public-map' }">
+          <span class="nav-dot"></span>公开分布视图
+        </router-link>
+
         <div class="nav-label">证据与规则</div>
         <router-link to="/records" :class="{ active: route.name === 'records' }">
           <span class="nav-dot"></span>观测档案
@@ -75,7 +92,7 @@ function onLogout() {
           退出登录
         </button>
         <div class="tiny" style="color: #7f978c; line-height: 1.4">
-          仅交付覆盖与有效性数据<br />不派发巡护任务 · 不预约人员器材
+          仅交付覆盖、有效性与公开分布数据<br />不派发巡护任务 · 不预约人员器材
         </div>
       </div>
     </aside>

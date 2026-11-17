@@ -325,3 +325,16 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   font-size: 12.5px; box-shadow: 0 12px 32px -12px rgba(0,0,0,0.5); max-width: 420px;
 }
 .toast.error { background: #7a2a1c; }
+
+/* ---------- public spatial delivery ---------- */
+.public-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 30px;
+  background: #16332b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.public-bar .brand-title { color: #f2f7f4 !important; }
+.public-bar .btn { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.22); color: #e5efe9; }

@@ -16,6 +16,8 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+COPY sample_data ./sample_data
+COPY scripts ./scripts
 COPY tests ./tests
 COPY pytest.ini ./
 COPY entrypoint.sh ./

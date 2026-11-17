@@ -1,0 +1,32 @@
+{
+  "dataset": "suitability",
+  "version": 2,
+  "source_file": "sample_data/suitability_v2.json",
+  "notes": "样本文件：修订版巢区适生条件。绿尾虹雉适生海拔下限调整为 1680m，仍只使用公开生境类别。",
+  "species": [
+    {
+      "species_code": "LOPHOPHORUS",
+      "name": "绿尾虹雉",
+      "habitat_classes": ["riparian"],
+      "elevation_min_m": 1680,
+      "elevation_max_m": 2000,
+      "notes": "狭窄溪岸带，仅沿公开河岸生境计算候选范围"
+    },
+    {
+      "species_code": "BUDORCAS",
+      "name": "羚牛",
+      "habitat_classes": ["mixed_forest", "conifer"],
+      "elevation_min_m": 1600,
+      "elevation_max_m": 2900,
+      "notes": "针阔混交林与高寒针叶林"
+    },
+    {
+      "species_code": "AILUROPODA",
+      "name": "大熊猫",
+      "habitat_classes": ["mixed_forest"],
+      "elevation_min_m": 1600,
+      "elevation_max_m": 2400,
+      "notes": "中低海拔混交林"
+    }
+  ]
+}
